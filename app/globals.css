@@ -1,26 +1,111 @@
-@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+@layer base {
+  body {
+    font-family: 'Inter', sans-serif;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  .font-mono {
+    font-family: 'JetBrains Mono', monospace;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  .obsidian-card {
+    background: rgba(15, 23, 42, 0.04);
+    border: 1px solid rgba(15, 23, 42, 0.1);
+    backdrop-filter: blur(12px);
+    transition: all 0.3s ease;
+  }
+
+  .dark .obsidian-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .burn-gradient {
+    background: linear-gradient(90deg, #10B981 70%, #EF4444 70%);
+  }
+
+  .terminal-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .parallax-grid {
+    will-change: transform;
+    background-image: radial-gradient(circle at 2px 2px, rgba(15, 23, 42, 0.05) 1px, transparent 0);
+    background-size: 60px 60px;
+  }
+
+  .dark .parallax-grid {
+    background-image: radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.05) 1px, transparent 0);
+  }
+
+  .btn-tactile {
+    transition: transform 0.1s ease-in-out, box-shadow 0.1s ease-in-out;
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+  }
+
+  .btn-tactile:active {
+    transform: scale(0.96);
+    box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.1);
+  }
+
+  .dark .btn-tactile:active {
+    box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.5);
+  }
+}
+
+@layer utilities {
+  .animate-fade-up {
+    animation: fadeInUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  }
+
+  .animate-reveal {
+    animation: reveal 1.2s cubic-bezier(0.77, 0, 0.175, 1) forwards;
+  }
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: .5;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes reveal {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+::selection {
+  background-color: rgba(16, 185, 129, 0.3);
+  color: inherit;
 }
