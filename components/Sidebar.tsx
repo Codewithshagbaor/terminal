@@ -13,10 +13,10 @@ function Sidebar({ activeTab, isConnected }: SidebarProps) {
 
     const navItems = [
         { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', protected: true },
-        { id: 'wagers', icon: History, label: 'Wagers', path: '/', protected: false },
         { id: 'join', icon: Search, label: 'Join Wager', path: '/join', protected: true },
         { id: 'create', icon: PlusCircle, label: 'New Wager', path: '/create', protected: true },
-        { id: 'terminal', icon: Terminal, label: 'Terminal', path: '/terminal', protected: true },
+        { id: 'terminal', icon: Terminal, label: 'Active Terminal', path: '/terminal', protected: true },
+        { id: 'history', icon: History, label: 'History', path: '/history', protected: true },
     ];
 
     // Hide sidebar completely when wallet is not connected

@@ -10,6 +10,7 @@ import { useAppStore } from '@/lib/store';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
 import { WalletGuard } from '@/components/Protector';
+import { Toaster } from 'react-hot-toast';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -66,6 +67,8 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
   return (
     <WalletGuard>
+      <Toaster position="top-right" />
+
       <div className="min-h-screen flex flex-col md:flex-row bg-slate-50 dark:bg-[#0D0D12] text-slate-900 dark:text-slate-200 transition-colors duration-300">
         <Sidebar activeTab={activeTab} isConnected={isConnected} />
 

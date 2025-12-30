@@ -13,6 +13,8 @@ import {
     Coins,
     User,
     Vote,
+    Bitcoin,
+    Dribbble,
     Share2,
     Calendar,
     Trophy
@@ -118,7 +120,7 @@ export default function Dashboard({ wagers = [], onSelectWager, onJoinClick, onC
 
     const categories = [
         { label: 'Sports', icon: <Activity className="w-5 h-5" />, count: 142 },
-        { label: 'Crypto', icon: <Coins className="w-5 h-5" />, count: 89 },
+        { label: 'Crypto', icon: <Bitcoin className="w-5 h-5" />, count: 89 },
         { label: 'P2P/Social', icon: <User className="w-5 h-5" />, count: 215 },
         { label: 'Custom', icon: <PlusCircle className="w-5 h-5" />, count: 42 },
     ];
@@ -128,7 +130,7 @@ export default function Dashboard({ wagers = [], onSelectWager, onJoinClick, onC
 
         const logoMap: Record<string, React.ReactNode> = {
             'ETH': <span className="text-[#627EEA] font-bold">Ξ</span>,
-            'BTC': <Coins className="w-5 h-5 text-[#F7931A]" />,
+            'BTC': <Bitcoin className="w-5 h-5 text-[#F7931A]" />,
             'LAL': <span className="text-[#FDB927] font-black italic">LAL</span>,
             'GSW': <span className="text-[#1D428A] font-black italic">GSW</span>,
             'MCI': <span className="text-[#6CABDD] font-black italic">MCI</span>,
@@ -145,6 +147,21 @@ export default function Dashboard({ wagers = [], onSelectWager, onJoinClick, onC
     return (
         <div className="space-y-10 animate-in fade-in duration-700 pb-10">
 
+
+            {/* Dashboard Overview (HUD) */}
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-[1px] bg-slate-200 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-2xl overflow-hidden shadow-sm dark:shadow-xl">
+                {stats.map((stat, idx) => (
+                    <div key={stat.label} className={`bg-white dark:bg-[#0D0D12] p-4 md:p-5 ${idx === 4 ? 'col-span-2 lg:col-span-1' : ''}`}>
+                        <div className="flex justify-between items-start mb-1">
+                            <span className="text-[8px] md:text-[9px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">{stat.label}</span>
+                        </div>
+                        <div className="text-xl md:text-2xl font-bold font-mono tracking-tighter text-slate-900 dark:text-white">
+                            {stat.value}
+                        </div>
+                        <span className={`text-[8px] font-mono font-bold ${stat.color}`}>{stat.change}</span>
+                    </div>
+                ))}
+            </div>
             {/* Primary Action Bar */}
             <div className="flex flex-col sm:flex-row gap-4">
                 <button
@@ -170,21 +187,6 @@ export default function Dashboard({ wagers = [], onSelectWager, onJoinClick, onC
                 </button>
             </div>
 
-            {/* Dashboard Overview (HUD) */}
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-[1px] bg-slate-200 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-2xl overflow-hidden shadow-sm dark:shadow-xl">
-                {stats.map((stat, idx) => (
-                    <div key={stat.label} className={`bg-white dark:bg-[#0D0D12] p-4 md:p-5 ${idx === 4 ? 'col-span-2 lg:col-span-1' : ''}`}>
-                        <div className="flex justify-between items-start mb-1">
-                            <span className="text-[8px] md:text-[9px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">{stat.label}</span>
-                        </div>
-                        <div className="text-xl md:text-2xl font-bold font-mono tracking-tighter text-slate-900 dark:text-white">
-                            {stat.value}
-                        </div>
-                        <span className={`text-[8px] font-mono font-bold ${stat.color}`}>{stat.change}</span>
-                    </div>
-                ))}
-            </div>
-
             {/* Quick Wager Section - Full Width */}
             <section className="space-y-4">
                 <div className="flex items-center gap-2 px-2">
@@ -193,11 +195,12 @@ export default function Dashboard({ wagers = [], onSelectWager, onJoinClick, onC
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     {quickWagers.map(qw => (
-                        <div key={qw.id} className="obsidian-card p-5 md:p-6 rounded-2xl group hover:border-emerald-500/30 transition-all flex flex-col justify-between min-h-[220px] relative overflow-hidden bg-white dark:bg-white/5 shadow-sm">
+                        <div key={qw.id} className="obsidian-card p-5 md:p-6 rounded-2xl border-white/5 group hover:border-emerald-500/30 transition-all flex flex-col justify-between min-h-[200px] relative overflow-hidden">
                             <div className="relative z-10">
                                 <div className="flex justify-between items-start">
-                                    <span className="text-[9px] font-mono font-bold text-emerald-600 dark:text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded uppercase tracking-tighter">{qw.category}</span>
+                                    <span className="text-[9px] font-mono font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded uppercase">{qw.category}</span>
 
+                                    {/* Logo Display Logic */}
                                     <div className="relative">
                                         {qw.type === 'versus' ? (
                                             <div className="flex items-center -space-x-4">
@@ -221,20 +224,24 @@ export default function Dashboard({ wagers = [], onSelectWager, onJoinClick, onC
                                 </div>
 
                                 <h4 className="text-base md:text-lg font-bold italic mt-6 text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors line-clamp-2 leading-snug">{qw.title}</h4>
-
-                                <div className="flex items-center gap-2 mt-3">
-                                    <span className="text-[9px] font-mono text-slate-500 flex items-center gap-1 uppercase bg-slate-100 dark:bg-white/5 px-2 py-0.5 rounded border border-slate-200 dark:border-white/5">
-                                        <Activity className="w-3 h-3 text-emerald-600 dark:text-emerald-500" /> {qw.time}
+                                <div className="flex items-center gap-2 mt-2">
+                                    <span className="text-[9px] font-mono text-slate-500 flex items-center gap-1 uppercase bg-white/5 px-2 py-0.5 rounded">
+                                        <Activity className="w-3 h-3 text-emerald-500" /> {qw.time}
                                     </span>
-                                    <span className="text-[9px] font-mono text-amber-600 dark:text-amber-500 font-bold uppercase bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                                    <span className="text-[9px] font-mono text-amber-500 font-bold uppercase bg-amber-500/10 px-2 py-0.5 rounded">
                                         {qw.odds} ODDS
                                     </span>
                                 </div>
 
-                                <div className="flex gap-2 mt-5">
-                                    <button className="flex-1 py-2.5 bg-slate-50 dark:bg-[#0D0D12] border border-slate-200 dark:border-white/5 rounded-xl text-[10px] font-mono font-bold text-slate-500 hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400 hover:border-emerald-500/30 transition-all uppercase tracking-widest uppercase">Vote {qw.sideA}</button>
-                                    <button className="flex-1 py-2.5 bg-slate-50 dark:bg-[#0D0D12] border border-slate-200 dark:border-white/5 rounded-xl text-[10px] font-mono font-bold text-slate-500 hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400 hover:border-emerald-500/30 transition-all uppercase tracking-widest uppercase">Vote {qw.sideB}</button>
+                                <div className="flex gap-2 mt-4">
+                                    <button className="flex-1 py-2 bg-white/5 border border-white/10 rounded-lg text-[10px] font-mono font-bold hover:bg-emerald-500/10 transition-all uppercase">{qw.sideA}</button>
+                                    <button className="flex-1 py-2 bg-white/5 border border-white/10 rounded-lg text-[10px] font-mono font-bold hover:bg-emerald-500/10 transition-all uppercase">{qw.sideB}</button>
                                 </div>
+                            </div>
+
+                            {/* Decorative faint icon in background */}
+                            <div className="absolute -bottom-4 -right-4 opacity-[0.05] dark:opacity-[0.03] rotate-12 group-hover:opacity-[0.1] dark:group-hover:opacity-[0.08] transition-opacity">
+                                {qw.category === 'SPORTS' ? <Dribbble className="w-24 h-24 text-slate-900 dark:text-white" /> : <Bitcoin className="w-24 h-24 text-slate-900 dark:text-white" />}
                             </div>
                         </div>
                     ))}
@@ -323,7 +330,7 @@ export default function Dashboard({ wagers = [], onSelectWager, onJoinClick, onC
                     </div>
                 </section>
 
-            <aside className="xl:col-span-4 space-y-4">
+                <aside className="xl:col-span-4 space-y-4">
                     <h3 className="text-xs font-mono font-bold text-slate-400 px-2 uppercase tracking-widest">Categories</h3>
                     <div className="grid grid-cols-2 gap-3">
                         {categories.map(cat => (
@@ -338,7 +345,7 @@ export default function Dashboard({ wagers = [], onSelectWager, onJoinClick, onC
                             </button>
                         ))}
                     </div>
-            </aside>
+                </aside>
             </div>
         </div>
     );
