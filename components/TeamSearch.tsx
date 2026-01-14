@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { X, Loader2, AlertCircle } from 'lucide-react';
 
@@ -28,7 +28,15 @@ export default function TeamSearch({
         fetcher
     );
 
-    const [search, setSearch] = useState('');
+    // Initialize search with selected team name if available
+    const [search, setSearch] = useState(selectedTeam?.name || '');
+
+    // Update search when selectedTeam changes externally
+    useEffect(() => {
+        if (selectedTeam?.name && search !== selectedTeam.name) {
+            setSearch(selectedTeam.name);
+        }
+    }, [selectedTeam]);
 
     const filtered = Array.isArray(teams)
         ? teams.filter(t =>

@@ -9,13 +9,13 @@ export function useCreateBet() {
 
   const createBet = (args: any[]) => {
     const contractAddress = CONTRACT_ADDRESSES[chainId as keyof typeof CONTRACT_ADDRESSES];
-    
+
     if (!contractAddress) {
       throw new Error(`Contract address not found for chain ID: ${chainId}`);
     }
 
-    if (!args || args.length !== 6) {
-      throw new Error(`Expected 6 arguments for createBet, got ${args?.length || 0}`);
+    if (!args || args.length !== 8) {
+      throw new Error(`Expected 8 arguments for createBet: [token, title, stakeAmount, voteDeadline, category, metadataCID, betType, maxParticipants], got ${args?.length || 0}`);
     }
 
     console.log('Creating bet with args:', args); // Debug log

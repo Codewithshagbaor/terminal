@@ -107,12 +107,13 @@ export default function TokenAmountSelector({
         tokenAddress,
         decimals,
         tokenBalance,
-        actualStakeAmount,
+        actualStakeAmount, // This is the denormalized amount for approval (500 * 10^18)
         needsApproval,
         hasSufficientBalance,
         formattedBalance,
         formattedAllowance,
-        stakeAmount: BigInt(form.amount || '0')
+        rawAmount: form.amount, // Keep the user-friendly string "500"
+        userAmount: BigInt(Math.floor(parseFloat(form.amount || '0'))), // Raw bigint: 500n
     }), [
         selected,
         tokenAddress,
@@ -129,7 +130,7 @@ export default function TokenAmountSelector({
     // Call onTokenDataChange when data changes
     useEffect(() => {
         if (onTokenDataChange) {
-            onTokenDataChange(tokenData() as TokenData);
+            onTokenDataChange(tokenData() as unknown as TokenData);
         }
     }, [form.token, form.amount, tokenBalance, currentAllowance]);
 

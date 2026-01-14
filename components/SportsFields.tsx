@@ -15,6 +15,15 @@ interface SportsFieldsProps {
         venue?: string;
         betType?: string;
     }) => void;
+    initialData?: {
+        sport?: string;
+        league?: string;
+        teamA?: string;
+        teamB?: string;
+        gameDate?: string;
+        venue?: string;
+        betType?: string;
+    };
 }
 
 const sportsTypes = [
@@ -25,14 +34,15 @@ const sportsTypes = [
     { id: "hockey", name: "Hockey", icon: "🏒" },
 ];
 
-export default function SportsFields({ onDataChange }: SportsFieldsProps) {
-    const [sport, setSport] = useState('');
-    const [league, setLeague] = useState('');
-    const [teamA, setTeamA] = useState<any>(null);
-    const [teamB, setTeamB] = useState<any>(null);
-    const [gameDate, setGameDate] = useState('');
-    const [venue, setVenue] = useState('');
-    const [betType, setBetType] = useState('');
+export default function SportsFields({ onDataChange, initialData }: SportsFieldsProps) {
+    const [sport, setSport] = useState(initialData?.sport || '');
+    const [leagueId, setLeagueId] = useState(initialData?.league || ''); // League ID for API calls
+    const [leagueName, setLeagueName] = useState(initialData?.league || ''); // League name for display
+    const [teamA, setTeamA] = useState<any>(initialData?.teamA ? { name: initialData.teamA } : null);
+    const [teamB, setTeamB] = useState<any>(initialData?.teamB ? { name: initialData.teamB } : null);
+    const [gameDate, setGameDate] = useState(initialData?.gameDate || '');
+    const [venue, setVenue] = useState(initialData?.venue || '');
+    const [betType, setBetType] = useState(initialData?.betType || '');
 
     const isMatchReady = teamA && teamB;
 
@@ -40,14 +50,14 @@ export default function SportsFields({ onDataChange }: SportsFieldsProps) {
     useEffect(() => {
         onDataChange({
             sport,
-            league,
+            league: leagueName, // Pass name for display, not ID
             teamA: teamA?.name || '',
             teamB: teamB?.name || '',
             gameDate,
             venue,
             betType
         });
-    }, [sport, league, teamA, teamB, gameDate, venue, betType]);
+    }, [sport, leagueName, teamA, teamB, gameDate, venue, betType]);
 
     return (
         <div className="space-y-6">
@@ -63,13 +73,14 @@ export default function SportsFields({ onDataChange }: SportsFieldsProps) {
                             type="button"
                             onClick={() => {
                                 setSport(sportType.id);
-                                setLeague('');
+                                setLeagueId('');
+                                setLeagueName('');
                                 setTeamA(null);
                                 setTeamB(null);
                             }}
                             className={`rounded-2xl border-2 text-slate-900 dark:text-white px-4 py-3 transition-all ${sport === sportType.id
-                                    ? 'border-emerald-500 bg-emerald-500/10 shadow-lg'
-                                    : 'border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5 hover:border-emerald-500/50'
+                                ? 'border-emerald-500 bg-emerald-500/10 shadow-lg'
+                                : 'border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5 hover:border-emerald-500/50'
                                 }`}
                         >
                             <div className="text-2xl mb-1">{sportType.icon}</div>
@@ -85,16 +96,23 @@ export default function SportsFields({ onDataChange }: SportsFieldsProps) {
                     <label className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">
                         Select_League
                     </label>
-                    <LeagueSelect sportId={sport} onSelect={setLeague} />
+                    <LeagueSelect
+                        sportId={sport}
+                        onSelect={(id, name) => {
+                            setLeagueId(id);
+                            setLeagueName(name);
+                        }}
+                        initialValue={leagueId}
+                    />
                 </div>
             )}
 
             {/* Team Selectors */}
-            {league && (
+            {leagueId && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <TeamSearch
                         label="Side_A (Winner)"
-                        leagueId={league}
+                        leagueId={leagueId}
                         sportId={sport}
                         selectedOtherTeam={teamB?.name}
                         selectedTeam={teamA}
@@ -103,7 +121,7 @@ export default function SportsFields({ onDataChange }: SportsFieldsProps) {
 
                     <TeamSearch
                         label="Side_B (Opponent)"
-                        leagueId={league}
+                        leagueId={leagueId}
                         sportId={sport}
                         selectedOtherTeam={teamA?.name}
                         selectedTeam={teamB}

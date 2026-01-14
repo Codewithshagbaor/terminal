@@ -83,6 +83,27 @@
   }
 }
 
+@keyframes spin-border {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spin-border {
+  position: relative;
+  overflow: visible;
+}
+
+.spin-border::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+  background: conic-gradient(from 0deg, #10B981, transparent 40%, transparent 60%, #10B981);
+  animation: spin-border 1.5s linear infinite;
+  z-index: -1;
+}
+
 @keyframes fadeInUp {
   from {
     opacity: 0;

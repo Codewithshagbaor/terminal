@@ -52,9 +52,10 @@ import TokenAmountSelector from '@/components/TokenAmountSelector';
 import SportsFields from '@/components/SportsFields';
 import ProgressModal from '@/components/ProgressModal';
 import { useAccount, useChainId } from 'wagmi';
+import { CONTRACT_ADDRESSES } from '@/constants/contracts';
 import { useCreateBet } from '@/hooks/write/useCreateBet';
 import { useJoinBet } from '@/hooks/write/useJoinBet';
-import { useApproveToken } from '@/hooks/read/useApproveToken';
+import { useApproveToken, useAllowance } from '@/hooks/read/useApproveToken';
 import { uploadMetadataToPinata } from '@/hooks/write/uploadToIPFS';
 import { useExtractBetId } from '@/hooks/utils/extractBetId';
 import toast from 'react-hot-toast';
@@ -68,6 +69,7 @@ export default function WagerBuilder() {
     const [isExecuting, setIsExecuting] = useState(false);
     const [executionStage, setExecutionStage] = useState(0);
     const [hasError, setHasError] = useState(false);
+    const [errorStage, setErrorStage] = useState<number | undefined>(undefined);
     const [metadataCid, setMetadataCid] = useState<string>('');
     const [txHash, setTxHash] = useState<`0x${string}` | undefined>();
     const [createdWagerId, setCreatedWagerId] = useState<number | null>(null);
@@ -77,7 +79,7 @@ export default function WagerBuilder() {
         description: '',
         participants: [] as WagerParticipant[],
         isOpenJoin: true,
-        amount: 0,
+        amount: '',
         token: '',
         endDate: '',
         maxParticipants: 5,
@@ -89,10 +91,23 @@ export default function WagerBuilder() {
     const chainId = useChainId();
     const { createBet, data: createData, isPending: isCreating, isSuccess: createSuccess, error: createError } = useCreateBet();
     const { joinBet, isPending: isJoining, isSuccess: joinSuccess, error: joinError } = useJoinBet();
+
+    // Calculate the denormalized amount for approval
+    const denormalizedAmount = tokenData?.actualStakeAmount || 0n;
+
+
     const { approveToken, isPending: isApproving, isSuccess: approveSuccess, error: approveError } = useApproveToken(
         tokenData?.tokenAddress as `0x${string}`,
-        tokenData?.actualStakeAmount || 0n
+        denormalizedAmount // This will be 500 * 10^18
     );
+
+    // Get current allowance to check if we need to approve
+    const contractAddress = CONTRACT_ADDRESSES[chainId as keyof typeof CONTRACT_ADDRESSES] as `0x${string}`;
+    const { data: currentAllowance, refetch: refetchAllowance } = useAllowance(
+        tokenData?.tokenAddress as `0x${string}`,
+        contractAddress
+    );
+
     const { betId, isLoading: extracting } = useExtractBetId(txHash);
 
     const [newParticipant, setNewParticipant] = useState({ name: '', address: '' });
@@ -116,6 +131,32 @@ export default function WagerBuilder() {
         setFormData({ ...formData, participants: updated });
     };
 
+    // Helper function to generate wager title based on template and category data
+    const generateTitle = (): string => {
+        const cd = formData.categoryData;
+        switch (template) {
+            case 'SPORTS':
+                if (cd?.teamA && cd?.teamB) {
+                    return `${cd.teamA} vs ${cd.teamB}`;
+                }
+                return cd?.sport ? `${cd.sport} Match` : 'Sports Wager';
+            case 'CHALLENGE':
+                if (cd?.challengeType && cd?.targetValue && cd?.targetUnit) {
+                    return `${cd.challengeType}: ${cd.targetValue} ${cd.targetUnit}`;
+                }
+                return cd?.challengeCategory ? `${cd.challengeCategory} Challenge` : 'Skill Challenge';
+            case 'PREDICTION':
+                if (cd?.predictionAsset && cd?.targetPrice) {
+                    return `${cd.predictionAsset} ${cd.direction || ''} ${cd.targetPrice}`;
+                }
+                return cd?.predictionCategory ? `${cd.predictionCategory} Prediction` : 'Market Prediction';
+            case 'CUSTOM':
+                return cd?.customTitle || 'Custom Wager';
+            default:
+                return 'Wager';
+        }
+    };
+
     const handleCreateBet = async () => {
         try {
             // Validation
@@ -127,6 +168,16 @@ export default function WagerBuilder() {
             if (!tokenData || !tokenData.hasSufficientBalance) {
                 toast.error('Insufficient token balance');
                 return;
+            }
+
+            // Validate deadline is in the future
+            if (formData.endDate) {
+                const deadlineMs = new Date(formData.endDate).getTime();
+                const nowMs = Date.now();
+                if (deadlineMs <= nowMs + 60 * 60 * 1000) {
+                    toast.error('Deadline must be at least 1 hour in the future');
+                    return;
+                }
             }
 
             setIsExecuting(true);
@@ -155,15 +206,31 @@ export default function WagerBuilder() {
             setExecutionStage(2);
             toast.loading('Creating wager on blockchain...');
 
-            const opponent = formData.participants.length > 0
-                ? formData.participants[0].address as `0x${string}`
-                : '0x0000000000000000000000000000000000000000' as `0x${string}`;
+            const title = generateTitle();
+            const voteDeadline = formData.endDate
+                ? BigInt(Math.floor(new Date(formData.endDate).getTime() / 1000))
+                : BigInt(Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60);
+
+            const betType = formData.maxParticipants <= 2 ? 0 : 1;
+            const category = template?.toLowerCase() || 'custom';
+
+            const userAmount = BigInt(Math.floor(parseFloat(formData.amount || '0')));
+
+            console.log('Creating bet with:', {
+                userAmount: userAmount.toString(), // Should be "500"
+                willBeStoredAs: (userAmount * BigInt(10 ** tokenData.decimals)).toString(), // Should be "500000000000000000000"
+                approvalAmount: denormalizedAmount.toString() // Should match willBeStoredAs
+            });
 
             createBet([
-                opponent,
                 tokenData.tokenAddress,
-                tokenData.actualStakeAmount,
-                cid
+                title,
+                userAmount,
+                voteDeadline,
+                category,
+                cid,
+                betType,
+                BigInt(formData.maxParticipants)
             ]);
 
         } catch (error: any) {
@@ -171,80 +238,106 @@ export default function WagerBuilder() {
             toast.dismiss();
             toast.error(error.message || 'Failed to create wager');
             setHasError(true);
+            setErrorStage(1);
             setIsExecuting(false);
         }
     };
 
-    // Monitor wager creation success
+    // Capture transaction hash
     React.useEffect(() => {
-        if (createSuccess && createData) {
-            toast.dismiss();
-            toast.success('Wager created!');
+        if (createData) {
             setTxHash(createData);
         }
-        if (createError) {
-            toast.dismiss();
-            toast.error('Failed to create wager');
-            setHasError(true);
-            setIsExecuting(false);
-        }
-    }, [createSuccess, createData, createError]);
+    }, [createData]);
 
-    // Extract wager ID from transaction
+    // Handle creation errors
     React.useEffect(() => {
-        if (betId !== null && betId !== undefined) {
+        if (createError) {
+            setHasError(true);
+            setErrorStage(2);
+            setIsExecuting(false);
+            toast.dismiss();
+            toast.error(`Creation failed: ${createError.message}`);
+        }
+    }, [createError]);
+
+    // Extract betId and handle approval/join flow
+    React.useEffect(() => {
+        if (betId !== null && betId !== undefined && tokenData && denormalizedAmount) {
             setCreatedWagerId(betId);
 
-            // Stage 3: Check if approval needed
-            if (tokenData?.needsApproval) {
-                setExecutionStage(3);
-                toast.loading('Approving tokens...');
-                approveToken();
-            } else {
-                // Skip to auto-join
+            const hasEnoughAllowance = currentAllowance && currentAllowance >= denormalizedAmount;
+
+            console.log('Allowance check:', {
+                userAmount: formData.amount,
+                decimals: tokenData.decimals,
+                denormalizedAmount: denormalizedAmount.toString(),
+                currentAllowance: currentAllowance?.toString(),
+                hasEnoughAllowance
+            });
+
+            if (hasEnoughAllowance) {
+                toast.dismiss();
+                toast.success('Allowance sufficient!');
                 setExecutionStage(4);
                 toast.loading('Joining wager...');
                 joinBet(betId);
+            } else {
+                setExecutionStage(3);
+                toast.dismiss();
+                toast.loading('Approving tokens...');
+                console.log('Approving:', {
+                    token: tokenData.tokenAddress,
+                    amount: denormalizedAmount.toString()
+                });
+                approveToken();
             }
         }
-    }, [betId]);
+    }, [betId, tokenData, denormalizedAmount, currentAllowance]);
 
-    // Monitor approval success
+    // Handle approval success
     React.useEffect(() => {
         if (approveSuccess && createdWagerId !== null) {
             toast.dismiss();
             toast.success('Tokens approved!');
 
-            // Stage 4: Auto-join the wager
-            setExecutionStage(4);
-            toast.loading('Joining wager...');
-            joinBet(createdWagerId);
+            // Wait a moment then refetch and join
+            setTimeout(() => {
+                refetchAllowance().then(() => {
+                    setExecutionStage(4);
+                    toast.loading('Joining wager...');
+                    joinBet(createdWagerId);
+                });
+            }, 1000);
         }
+
         if (approveError) {
             toast.dismiss();
-            toast.error('Failed to approve tokens');
+            console.error('Approval error:', approveError);
+            toast.error(`Approval failed: ${approveError.message || 'Unknown error'}`);
             setHasError(true);
+            setErrorStage(3);
             setIsExecuting(false);
         }
-    }, [approveSuccess, approveError, createdWagerId]);
+    }, [approveSuccess, approveError, createdWagerId, refetchAllowance]);
 
-    // Monitor join success
+    // Handle join success
     React.useEffect(() => {
         if (joinSuccess) {
             toast.dismiss();
             toast.success('Successfully joined wager!');
-
-            // Stage 5: Complete
             setExecutionStage(5);
             setTimeout(() => {
                 setIsExecuting(false);
-                // Reset form or redirect
             }, 2000);
         }
+
         if (joinError) {
             toast.dismiss();
-            toast.error('Failed to join wager');
+            console.error('Join error:', joinError);
+            toast.error(`Join failed: ${joinError.message || 'Unknown error'}`);
             setHasError(true);
+            setErrorStage(4);
             setIsExecuting(false);
         }
     }, [joinSuccess, joinError]);
@@ -278,7 +371,10 @@ export default function WagerBuilder() {
 
                         {/* SPORTS Category */}
                         {template === 'SPORTS' && SportsFields && (
-                            <SportsFields onDataChange={(data: any) => setFormData({ ...formData, categoryData: data })} />
+                            <SportsFields
+                                onDataChange={(data: any) => setFormData({ ...formData, categoryData: data })}
+                                initialData={formData.categoryData}
+                            />
                         )}
 
                         {/* CHALLENGE Category */}
@@ -704,8 +800,7 @@ export default function WagerBuilder() {
                                 setForm={setFormData}
                                 isLoading={isExecuting}
                                 onTokenDataChange={(data: any) => {
-                                    setTokenData(data);
-                                    setFormData({ ...formData, amount: Number(data.rawAmount) / (10 ** data.decimals) });
+                                    setTokenData(data); // Just store the whole object
                                 }}
                             />
                         )}
@@ -716,9 +811,10 @@ export default function WagerBuilder() {
                                     <Clock className="w-3.5 h-3.5" /> Expiration_Target
                                 </label>
                                 <input
-                                    type="date"
+                                    type="datetime-local"
                                     value={formData.endDate}
                                     onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                                    min={new Date(Date.now() + 60 * 60 * 1000).toISOString().slice(0, 16)}
                                     className="w-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all text-slate-900 dark:text-white"
                                 />
                             </div>
@@ -770,17 +866,130 @@ export default function WagerBuilder() {
                                 </div>
                                 <div className="space-y-2 md:text-right">
                                     <span className="text-[10px] font-mono text-slate-400 uppercase tracking-[0.3em]">Total_Stake</span>
-                                    <div className="font-mono font-bold text-4xl md:text-5xl text-emerald-600 dark:text-emerald-500 tracking-tighter italic">${formData.amount.toFixed(2)} USDC</div>
+                                    <div className="font-mono font-bold text-4xl md:text-5xl text-emerald-600 dark:text-emerald-500 tracking-tighter italic">{parseFloat(formData.amount || '0').toFixed(2)} {formData.token || 'TOKEN'}</div>
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                                 <div className="space-y-4">
                                     <div className="space-y-1">
-                                        <span className="text-[10px] font-mono text-slate-400 uppercase tracking-[0.3em]">Objective_Statement</span>
+                                        <span className="text-[10px] font-mono text-slate-400 uppercase tracking-[0.3em]">Wager_Title</span>
                                         <p className="text-2xl font-bold italic text-slate-800 dark:text-slate-100 leading-tight">
-                                            "{formData.description || 'Outcome verification based on custom peer agreement...'}"
+                                            "{generateTitle()}"
                                         </p>
+                                    </div>
+
+                                    {/* Category-specific details */}
+                                    <div className="space-y-3 pt-4 border-t border-slate-200 dark:border-white/10">
+                                        {template === 'SPORTS' && formData.categoryData && (
+                                            <>
+                                                {formData.categoryData.sport && (
+                                                    <div className="flex items-center justify-between text-sm">
+                                                        <span className="text-slate-400 font-mono">Sport:</span>
+                                                        <span className="text-slate-900 dark:text-white font-bold uppercase">{formData.categoryData.sport}</span>
+                                                    </div>
+                                                )}
+                                                {formData.categoryData.league && (
+                                                    <div className="flex items-center justify-between text-sm">
+                                                        <span className="text-slate-400 font-mono">League:</span>
+                                                        <span className="text-slate-900 dark:text-white font-bold">{formData.categoryData.league}</span>
+                                                    </div>
+                                                )}
+                                                {formData.categoryData.teamA && formData.categoryData.teamB && (
+                                                    <div className="flex items-center justify-between text-sm">
+                                                        <span className="text-slate-400 font-mono">Match:</span>
+                                                        <span className="text-slate-900 dark:text-white font-bold">{formData.categoryData.teamA} vs {formData.categoryData.teamB}</span>
+                                                    </div>
+                                                )}
+                                                {formData.categoryData.gameDate && (
+                                                    <div className="flex items-center justify-between text-sm">
+                                                        <span className="text-slate-400 font-mono">Game Date:</span>
+                                                        <span className="text-slate-900 dark:text-white font-bold">{new Date(formData.categoryData.gameDate).toLocaleString()}</span>
+                                                    </div>
+                                                )}
+                                            </>
+                                        )}
+
+                                        {template === 'CHALLENGE' && formData.categoryData && (
+                                            <>
+                                                {formData.categoryData.challengeCategory && (
+                                                    <div className="flex items-center justify-between text-sm">
+                                                        <span className="text-slate-400 font-mono">Category:</span>
+                                                        <span className="text-slate-900 dark:text-white font-bold">{formData.categoryData.challengeCategory}</span>
+                                                    </div>
+                                                )}
+                                                {formData.categoryData.challengeType && (
+                                                    <div className="flex items-center justify-between text-sm">
+                                                        <span className="text-slate-400 font-mono">Challenge:</span>
+                                                        <span className="text-slate-900 dark:text-white font-bold">{formData.categoryData.challengeType}</span>
+                                                    </div>
+                                                )}
+                                                {formData.categoryData.targetValue && formData.categoryData.targetUnit && (
+                                                    <div className="flex items-center justify-between text-sm">
+                                                        <span className="text-slate-400 font-mono">Target:</span>
+                                                        <span className="text-slate-900 dark:text-white font-bold">{formData.categoryData.targetValue} {formData.categoryData.targetUnit}</span>
+                                                    </div>
+                                                )}
+                                                {formData.categoryData.verificationMethod && (
+                                                    <div className="flex items-center justify-between text-sm">
+                                                        <span className="text-slate-400 font-mono">Verification:</span>
+                                                        <span className="text-slate-900 dark:text-white font-bold capitalize">{formData.categoryData.verificationMethod}</span>
+                                                    </div>
+                                                )}
+                                            </>
+                                        )}
+
+                                        {template === 'PREDICTION' && formData.categoryData && (
+                                            <>
+                                                {formData.categoryData.predictionCategory && (
+                                                    <div className="flex items-center justify-between text-sm">
+                                                        <span className="text-slate-400 font-mono">Category:</span>
+                                                        <span className="text-slate-900 dark:text-white font-bold">{formData.categoryData.predictionCategory}</span>
+                                                    </div>
+                                                )}
+                                                {formData.categoryData.predictionAsset && (
+                                                    <div className="flex items-center justify-between text-sm">
+                                                        <span className="text-slate-400 font-mono">Asset:</span>
+                                                        <span className="text-slate-900 dark:text-white font-bold">{formData.categoryData.predictionAsset}</span>
+                                                    </div>
+                                                )}
+                                                {formData.categoryData.targetPrice && (
+                                                    <div className="flex items-center justify-between text-sm">
+                                                        <span className="text-slate-400 font-mono">Target:</span>
+                                                        <span className="text-slate-900 dark:text-white font-bold">{formData.categoryData.direction} {formData.categoryData.targetPrice}</span>
+                                                    </div>
+                                                )}
+                                                {formData.categoryData.source && (
+                                                    <div className="flex items-center justify-between text-sm">
+                                                        <span className="text-slate-400 font-mono">Data Source:</span>
+                                                        <span className="text-slate-900 dark:text-white font-bold capitalize">{formData.categoryData.source}</span>
+                                                    </div>
+                                                )}
+                                            </>
+                                        )}
+
+                                        {template === 'CUSTOM' && formData.categoryData && (
+                                            <>
+                                                {formData.categoryData.customTemplate && (
+                                                    <div className="flex items-center justify-between text-sm">
+                                                        <span className="text-slate-400 font-mono">Template:</span>
+                                                        <span className="text-slate-900 dark:text-white font-bold capitalize">{formData.categoryData.customTemplate}</span>
+                                                    </div>
+                                                )}
+                                                {formData.categoryData.customDescription && (
+                                                    <div className="text-sm">
+                                                        <span className="text-slate-400 font-mono block mb-1">Description:</span>
+                                                        <span className="text-slate-900 dark:text-white">{formData.categoryData.customDescription}</span>
+                                                    </div>
+                                                )}
+                                                {formData.categoryData.customRules && (
+                                                    <div className="text-sm">
+                                                        <span className="text-slate-400 font-mono block mb-1">Rules:</span>
+                                                        <span className="text-slate-900 dark:text-white">{formData.categoryData.customRules}</span>
+                                                    </div>
+                                                )}
+                                            </>
+                                        )}
                                     </div>
 
                                     <div className="pt-6 flex flex-col gap-3">
@@ -789,8 +998,8 @@ export default function WagerBuilder() {
                                             <span className="text-xs font-mono uppercase tracking-widest">Expires: {formData.endDate || 'NO_LIMIT'}</span>
                                         </div>
                                         <div className="flex items-center gap-3 text-slate-500">
-                                            <Fingerprint className="w-4 h-4" />
-                                            <span className="text-xs font-mono uppercase tracking-widest">Type: Non-Custodial Escrow</span>
+                                            <Users className="w-4 h-4" />
+                                            <span className="text-xs font-mono uppercase tracking-widest">Max Participants: {formData.maxParticipants}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -859,9 +1068,11 @@ export default function WagerBuilder() {
                     isOpen={isExecuting}
                     stage={executionStage}
                     hasError={hasError}
+                    errorStage={errorStage}
                     onClose={() => {
                         setIsExecuting(false);
                         setHasError(false);
+                        setErrorStage(undefined);
                     }}
                 />
             )}

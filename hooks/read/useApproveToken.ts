@@ -1,45 +1,63 @@
-import { useAccount, useChainId, useReadContract, useWriteContract } from 'wagmi';
-import { CONTRACT_ADDRESSES } from '@/constants/contracts'
-import { ERC20_ABI } from '@/constants/erc20ABI';
+import { useWriteContract, useReadContract, useAccount, useChainId } from 'wagmi';
+import { erc20Abi } from 'viem';
+import { CONTRACT_ADDRESSES } from '@/constants/contracts';
 
-export function useAllowance(token: `0x${string}`, spender: `0x${string}`) {
+export function useApproveToken(tokenAddress?: `0x${string}`, amount?: bigint) {
   const { address } = useAccount();
-  
-  return useReadContract({
-    address: token,
-    abi: ERC20_ABI,
-    functionName: 'allowance',
-    args: [address!, spender],
-  });
-}
-
-export function useApproveToken(token: `0x${string}`, amount: bigint) {
   const chainId = useChainId();
-  const { writeContract, ...rest } = useWriteContract();
-  
+  const contractAddress = CONTRACT_ADDRESSES[chainId as keyof typeof CONTRACT_ADDRESSES] as `0x${string}`;
+
+  const { writeContract, data, isPending, isSuccess, error } = useWriteContract();
+
   const approveToken = () => {
-    const spender = CONTRACT_ADDRESSES[chainId as keyof typeof CONTRACT_ADDRESSES];
-    
-    if (!spender) {
-      throw new Error(`Contract address not found for chain ID: ${chainId}`);
+    if (!tokenAddress || !amount || !contractAddress) {
+      console.error('Missing required params for approval:', {
+        tokenAddress,
+        amount: amount?.toString(),
+        contractAddress
+      });
+      return;
     }
-    
-    if (!token || !amount) {
-      throw new Error('Token address and amount are required');
-    }
-    
-    console.log('Approving token:', { token, spender, amount: amount.toString() });
-    
+
+    console.log('Approving token:', {
+      token: tokenAddress,
+      spender: contractAddress,
+      amount: amount.toString()
+    });
+
     writeContract({
-      abi: ERC20_ABI,
-      address: token,
+      address: tokenAddress,
+      abi: erc20Abi,
       functionName: 'approve',
-      args: [spender as `0x${string}`, amount],
+      args: [contractAddress, amount],
     });
   };
-  
+
   return {
     approveToken,
-    ...rest
+    data,
+    isPending,
+    isSuccess,
+    error,
+  };
+}
+
+export function useAllowance(tokenAddress?: `0x${string}`, spender?: `0x${string}`) {
+  const { address } = useAccount();
+
+  const { data, refetch, ...rest } = useReadContract({
+    address: tokenAddress,
+    abi: erc20Abi,
+    functionName: 'allowance',
+    args: address && spender ? [address, spender] : undefined,
+    query: {
+      enabled: !!address && !!tokenAddress && !!spender,
+    },
+  });
+
+  return {
+    data: data as bigint | undefined,
+    refetch,
+    ...rest,
   };
 }

@@ -21,7 +21,7 @@ export const uploadMetadataToPinata = async (metadata: Metadata): Promise<string
             body: JSON.stringify({
                 pinataContent: metadata,
                 pinataMetadata: {
-                    name: `bet-metadata-${Date.now()}`,
+                    name: `amongfriends-wager-metadata-${Date.now()}`,
                 },
             }),
         });
