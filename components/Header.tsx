@@ -63,20 +63,11 @@ function Header({ theme, onToggleTheme, activeTab }: HeaderProps) {
                     {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                 </button>
 
-                {/* Network Badge */}
-                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-emerald-500/5 border border-emerald-500/10 rounded-lg transition-all">
-                    <Globe className="w-3 h-3 text-emerald-600 dark:text-emerald-500" />
-                    <span className="text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-500 uppercase">
-                        {chain?.name || 'Localnet'}
-                    </span>
-                </div>
-
                 <div className="h-6 w-px bg-slate-200 dark:bg-white/10 mx-1"></div>
 
                 {/* Wallet Connection */}
                 <div className="rainbow-connect-wrapper scale-90 md:scale-100 origin-right">
                     <ConnectButton
-                        showBalance={{ smallScreen: false, largeScreen: true }}
                         accountStatus={{ smallScreen: 'avatar', largeScreen: 'full' }}
                         chainStatus="icon"
                     />

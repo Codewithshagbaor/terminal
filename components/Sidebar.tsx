@@ -29,11 +29,9 @@ function Sidebar({ activeTab, isConnected }: SidebarProps) {
             {/* Desktop Sidebar */}
             <aside className="hidden md:flex w-20 lg:w-64 bg-white dark:bg-[#09090D] border-r border-slate-200 dark:border-white/5 flex-col shrink-0 h-screen sticky top-0 transition-colors">
                 <div className="p-6 flex items-center gap-3">
-                    <div className="w-10 h-10 bg-emerald-500/10 dark:bg-emerald-500/20 rounded-lg flex items-center justify-center border border-emerald-500/30 dark:border-emerald-500/40">
-                        <Shield className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-                    </div>
+
                     <span className="hidden lg:block font-bold text-lg tracking-tighter italic text-slate-900 dark:text-white">
-                        AMONG FRIENDS
+                        AMONGFRIENDS
                     </span>
                 </div>
 
