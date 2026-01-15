@@ -244,7 +244,7 @@ pnpm lint
 
 ## 🗺️ Roadmap
 
-- [ ] Mainnet deployment (Base, Arbitrum)
+- [ ] Mainnet deployment
 - [ ] Oracle integration for automated sports/price outcomes
 - [ ] Social features (friends list, notifications)
 - [ ] Bet discovery marketplace
