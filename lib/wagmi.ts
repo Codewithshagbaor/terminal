@@ -5,8 +5,6 @@ import {
     mainnet,
     optimism,
     polygon,
-    sepolia,
-    baseSepolia,
     mantle,
     mantleSepoliaTestnet
 } from 'wagmi/chains';
@@ -21,7 +19,7 @@ export const config = getDefaultConfig({
         arbitrum,
         base,
         mantle,
-        ...(process.env.NEXT_PUBLIC_ENABLE_TESTNETS === 'true' ? [sepolia, baseSepolia, mantleSepoliaTestnet] : []),
+        ...(process.env.NEXT_PUBLIC_ENABLE_TESTNETS === 'true' ? [mantleSepoliaTestnet] : []),
     ],
     ssr: true,
 });
