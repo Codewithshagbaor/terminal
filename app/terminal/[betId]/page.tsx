@@ -122,10 +122,18 @@ export default function TerminalPage() {
 
     const isSettled = betDetails?.status === BetStatus.Resolved;
     const isActive = betDetails?.status === BetStatus.Active;
-    const canVote = isActive && !userHasVoted && isConnected;
+
 
     // Check if user is a participant
     const isParticipant = participants?.some(p => p.toLowerCase() === address?.toLowerCase());
+    // Determine current phase
+    const now = Math.floor(Date.now() / 1000);
+    const isBeforeDeadline = betDetails ? now < Number(betDetails.voteDeadline) : false;
+    const isAfterDeadline = betDetails ? now >= Number(betDetails.voteDeadline) : false;
+
+    const isJoiningPhase = betDetails?.status === BetStatus.Created && isBeforeDeadline;
+    const isVotingPhase = (betDetails?.status === BetStatus.Created || betDetails?.status === BetStatus.Active) && isAfterDeadline;
+    const canVote = isVotingPhase && !userHasVoted && isConnected && isParticipant;
 
     // Handle vote success
     useEffect(() => {
@@ -524,7 +532,7 @@ export default function TerminalPage() {
                             </div>
 
                             {/* Voting Options - Vote for participants */}
-                            {!isVerifying && (
+                            {isVotingPhase && !isVerifying && (
                                 <div className="space-y-4">
                                     <h4 className="text-center text-[10px] font-mono text-slate-400 uppercase tracking-widest mb-6">
                                         Cast Your Vote
@@ -554,6 +562,13 @@ export default function TerminalPage() {
                                     </div>
                                 </div>
                             )}
+                            {/* Show "Voting starts after deadline" message during joining phase */}
+                            {isJoiningPhase && (
+                                <div className="text-center py-8">
+                                    <Clock className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+                                    <p className="text-sm text-slate-500">Voting opens after the deadline</p>
+                                </div>
+                            )}
 
                             {/* User Status Info */}
                             <div className="mt-12 pt-8 border-t border-slate-100 dark:border-white/5 text-center flex flex-col items-center gap-4">
@@ -580,26 +595,27 @@ export default function TerminalPage() {
                                     {Number(betDetails.participantCount)} / {Number(betDetails.maxParticipants)} Participants
                                 </div>
 
-                                {/* Resolve Button - Show when voting is closed */}
-                                {betDetails.status === BetStatus.VotingClosed && (
-                                    <button
-                                        onClick={handleResolve}
-                                        disabled={isResolving}
-                                        className="mt-4 px-8 py-4 bg-emerald-500 text-white dark:text-[#0D0D12] font-black italic rounded-2xl flex items-center justify-center gap-3 btn-tactile shadow-xl shadow-emerald-500/20 disabled:opacity-50"
-                                    >
-                                        {isResolving ? (
-                                            <>
-                                                <Loader2 className="w-5 h-5 animate-spin" />
-                                                RESOLVING...
-                                            </>
-                                        ) : (
-                                            <>
-                                                RESOLVE BET
-                                                <ArrowRight className="w-5 h-5" />
-                                            </>
-                                        )}
-                                    </button>
-                                )}
+                                {/* Resolve Button - Show when voting is closed or deadline passed */}
+                                {(betDetails.status === BetStatus.VotingClosed ||
+                                    (isAfterDeadline && (betDetails.status === BetStatus.Created || betDetails.status === BetStatus.Active))) && (
+                                        <button
+                                            onClick={handleResolve}
+                                            disabled={isResolving}
+                                            className="mt-4 px-8 py-4 bg-emerald-500 text-white dark:text-[#0D0D12] font-black italic rounded-2xl flex items-center justify-center gap-3 btn-tactile shadow-xl shadow-emerald-500/20 disabled:opacity-50"
+                                        >
+                                            {isResolving ? (
+                                                <>
+                                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                                    RESOLVING...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    RESOLVE BET
+                                                    <ArrowRight className="w-5 h-5" />
+                                                </>
+                                            )}
+                                        </button>
+                                    )}
                             </div>
                         </>
                     )}

@@ -1,7 +1,7 @@
 import { useChainId, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { CONTRACT_ADDRESSES } from '@/constants/contracts';
 import { AMONG_FRIENDS_ABI } from '@/constants/contractABI';
-import { stringToHex, pad } from 'viem';
+import { stringToHex, pad, isAddress } from 'viem';
 
 export function useVote() {
     const chainId = useChainId();
@@ -27,9 +27,16 @@ export function useVote() {
             throw new Error(`Contract address not found for chain ID: ${chainId}`);
         }
 
-        // Convert the outcome string to bytes32
-        // Pad to 32 bytes (64 hex characters)
-        const outcomeBytes32 = pad(stringToHex(outcome), { size: 32 });
+        // Convert the outcome to bytes32
+        // If outcome is an address, pad it directly; otherwise convert string to hex first
+        let outcomeBytes32: `0x${string}`;
+        if (isAddress(outcome)) {
+            // Outcome is an Ethereum address - pad it directly to 32 bytes
+            outcomeBytes32 = pad(outcome as `0x${string}`, { size: 32, dir: 'left' });
+        } else {
+            // Outcome is a regular string - convert to hex first, then pad
+            outcomeBytes32 = pad(stringToHex(outcome), { size: 32, dir: 'left' });
+        }
 
         writeContract({
             abi: AMONG_FRIENDS_ABI,
