@@ -6,13 +6,13 @@ export const CONTRACT_ADDRESSES = isTestnetsEnabled
     137: '0xPolygonTestnetAddress',
     42161: '0xArbitrumTestnetAddress',
     84532: '0x227cBC1033dD32996eb62A8cb72AA57029628e9E',
-    5003: '0xD0cd0Cc19b018E51D0B2056b95aca6a817b6015b',
+    5003: '0x731B2e423b8c3EdAdd9dBf3a87Fc3ac43533fACf',
   }
   : {
     1: process.env.NEXT_PUBLIC_ETHEREUM_CONTRACT_ADDRESS || '0xEthereumAddress',
     137: process.env.NEXT_PUBLIC_POLYGON_CONTRACT_ADDRESS || '0xPolygonAddress',
     42161: process.env.NEXT_PUBLIC_ARBITRUM_CONTRACT_ADDRESS || '0xArbitrumAddress',
-    5003: process.env.NEXT_PUBLIC_5003_CONTRACT_ADDRESS || '0xD0cd0Cc19b018E51D0B2056b95aca6a817b6015b',
+    5003: process.env.NEXT_PUBLIC_5003_CONTRACT_ADDRESS || '0x731B2e423b8c3EdAdd9dBf3a87Fc3ac43533fACf',
   };
 
 export const COMMON_TOKENS = isTestnetsEnabled

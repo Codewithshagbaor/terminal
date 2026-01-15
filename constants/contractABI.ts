@@ -395,6 +395,11 @@ export const AMONG_FRIENDS_ABI = [
                 "type": "address"
             },
             {
+                "internalType": "string",
+                "name": "title",
+                "type": "string"
+            },
+            {
                 "internalType": "uint256",
                 "name": "stakeAmount",
                 "type": "uint256"

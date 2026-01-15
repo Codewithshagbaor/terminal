@@ -20,6 +20,7 @@ export enum BetType {
 export interface BetDetails {
     creator: `0x${string}`;
     token: `0x${string}`;
+    title: string;
     stakeAmount: bigint;
     voteDeadline: bigint;
     category: string;
@@ -49,15 +50,16 @@ export function useGetBetDetails(betId: number | undefined) {
     const betDetails: BetDetails | undefined = data ? {
         creator: (data as any)[0],
         token: (data as any)[1],
-        stakeAmount: (data as any)[2],
-        voteDeadline: (data as any)[3],
-        category: (data as any)[4],
-        metadataCID: (data as any)[5],
-        status: (data as any)[6] as BetStatus,
-        finalOutcome: (data as any)[7],
-        participantCount: (data as any)[8],
-        betType: (data as any)[9] as BetType,
-        maxParticipants: (data as any)[10],
+        title: (data as any)[2],
+        stakeAmount: (data as any)[3],
+        voteDeadline: (data as any)[4],
+        category: (data as any)[5],
+        metadataCID: (data as any)[6],
+        status: (data as any)[7] as BetStatus,
+        finalOutcome: (data as any)[8],
+        participantCount: (data as any)[9],
+        betType: (data as any)[10] as BetType,
+        maxParticipants: (data as any)[11],
     } : undefined;
 
     return { betDetails, isLoading, error, refetch };

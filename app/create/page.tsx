@@ -211,7 +211,8 @@ export default function WagerBuilder() {
                 ? BigInt(Math.floor(new Date(formData.endDate).getTime() / 1000))
                 : BigInt(Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60);
 
-            const betType = formData.maxParticipants <= 2 ? 0 : 1;
+            // BetType enum: 0 = OneVsOne (exactly 2 participants), 1 = OpenGroup (2+ participants)
+            const betType = formData.maxParticipants === 2 ? 0 : 1;
             const category = template?.toLowerCase() || 'custom';
 
             const userAmount = BigInt(Math.floor(parseFloat(formData.amount || '0')));

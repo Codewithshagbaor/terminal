@@ -276,6 +276,13 @@ export default function JoinPage() {
                                     </div>
 
                                     <div className="space-y-2">
+                                        <span className="text-[9px] font-mono text-slate-400 uppercase tracking-widest">Title</span>
+                                        <p className="text-lg font-bold italic text-slate-800 dark:text-slate-200 leading-tight">
+                                            "{betDetails.title}"
+                                        </p>
+                                    </div>
+
+                                    <div className="space-y-2">
                                         <span className="text-[9px] font-mono text-slate-400 uppercase tracking-widest">Category</span>
                                         <p className="text-lg font-bold italic text-slate-800 dark:text-slate-200 leading-tight">
                                             "{betDetails.category}"
@@ -427,28 +434,6 @@ export default function JoinPage() {
                                         <p className="text-[10px] font-mono text-amber-600 dark:text-amber-400 font-bold uppercase tracking-widest">Connect wallet to join bets</p>
                                     </div>
                                 )}
-
-                                {/* Quick access */}
-                                <div className="p-6 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 flex flex-col items-center gap-3">
-                                    <div className="flex items-center gap-2 text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-500 uppercase tracking-widest">
-                                        <Zap className="w-3 h-3" /> Quick_Access
-                                    </div>
-                                    <div className="flex gap-3">
-                                        {[1, 2, 3].map((id) => (
-                                            <button
-                                                key={id}
-                                                onClick={() => {
-                                                    setBetIdInput(id.toString());
-                                                    setSearchedBetId(id);
-                                                    setStatus('searching');
-                                                }}
-                                                className="px-4 py-2 rounded-lg bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:border-emerald-500/50 transition-all"
-                                            >
-                                                <span className="text-sm font-bold font-mono text-slate-900 dark:text-white">#{id}</span>
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
                             </div>
                         )}
                     </div>
